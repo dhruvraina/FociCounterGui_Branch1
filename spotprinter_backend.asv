@@ -1,0 +1,84 @@
+%Spot Printer: for checking cutoffs and printing sample images.
+
+% close all; clear all;
+% %load('F:\Dhruv\CCBT2\matfiles\140714100ng_ml_dish1SpotPrinter.mat')
+% load('F:\Dhruv\CCBT2\SpotPrinterVars\240714ncs300nMSpotPrinter.mat')
+% savepath = 'F:\Dhruv\CCBT2\SpotPrinterImages\';
+% save_flag = 1; %to save or not to save
+% 
+% prompt ={'Enter BatchMode:', 'Enter Area High Cutoff:', 'Enter Area Low Cutoff:', 'Enter Intensity Low Multip:', 'Enter Intensity High Multip:'};
+% defaultans = {'0', '45', '15', '0', '65535'};
+% numlines = 1;
+% %x = inputdlg('Batch,AreaHI, AreaLO, IntLo, INtHi');
+% x = inputdlg(prompt, 'User Inputs', numlines, defaultans);
+function varargout = spotprinter_backend(savepath, InputVars)
+keyboard
+BatchMode = InputVars{1};
+ahicut = InputVars{2};
+alowcut = InputVars{3};
+ilocut = InputVars{4}; %(sd multiplier)
+ihicut = InputVars{5}; %(sd multiplier)
+saveflag = 0;
+
+if BatchMode==1
+qq = length(vec_raw_nuc);
+saveflag = 1;
+elseif BatchMode==0
+    qq = 1;
+else
+    qq=0;
+end
+    
+for cc1 = 1:qq
+    
+    tspotmask = vec_spot_mask{cc1};
+    tspotimg = vec_raw_fitc{cc1};
+    [spot_lbl spot_num] = bwlabel(vec_spot_mask{cc1});
+    tprop = regionprops(spot_lbl, 'Area');
+    
+    %spot_area_cutoff:
+    arvec = [tprop(:).Area];
+    
+    %filt
+    filtA1 = find(arvec<alowcut);
+    filtA2 = find(arvec>ahicut);
+    filtA3 = [filtA1'; filtA2'];
+    filtA3 = filtA3';
+    
+    %clearing
+    for cc2 = filtA3
+        tspotmask(spot_lbl==cc2)=0;
+    end
+    
+    clear spot_lbl spot_num tprop;
+    [spot_lbl spot_num] = bwlabel(tspotmask);
+    tprop = regionprops(spot_lbl, tspotimg, 'MeanIntensity');
+    intvec = [tprop(:).MeanIntensity];
+    
+    %filt2
+    filti1 = find(intvec<ilocut);
+    filti2 = find(intvec>ihicut);
+    filti3 = [filti1'; filti2'];
+    filti3 = filti3';
+    
+    %clearing
+    for cc2 = filti3
+        tspotmask(spot_lbl==cc2)=0;
+    end
+    
+    figure, imshow(tspotmask)
+    if save_flag==1
+    hgexport(gcf, [savepath num2str(cc1) 'spotimg.jpg'], hgexport('factorystyle'), 'Format', 'jpeg');
+    close gcf;
+    else
+    end
+    figure,imshow(tspotimg)
+    if save_flag==1
+    hgexport(gcf, [savepath num2str(cc1) 'origimg.jpg'], hgexport('factorystyle'), 'Format', 'jpeg');
+    close gcf;
+    else
+    end
+end
+
+
+
