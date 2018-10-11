@@ -13,5 +13,6 @@ itotvec2 = nonzeros(itotvec(:));
 meanval = mean(itotvec2);
 stdval = std(itotvec2);
 int_cutoffL = meanval+(1*stdval);
-varargout{1} = int_cutoffL;
+varargout{1} = meanval; %int_cutoffL
+varargout{2} = stdval; %int_cutoffStd
 end

@@ -1,45 +1,37 @@
 %Spot Printer: for checking cutoffs and printing sample images.
+%author: dhruv raina
+%last edit: 220814
 
-% close all; clear all;
-% %load('F:\Dhruv\CCBT2\matfiles\140714100ng_ml_dish1SpotPrinter.mat')
-% load('F:\Dhruv\CCBT2\SpotPrinterVars\240714ncs300nMSpotPrinter.mat')
-% savepath = 'F:\Dhruv\CCBT2\SpotPrinterImages\';
-% save_flag = 1; %to save or not to save
-% 
-% prompt ={'Enter BatchMode:', 'Enter Area High Cutoff:', 'Enter Area Low Cutoff:', 'Enter Intensity Low Multip:', 'Enter Intensity High Multip:'};
-% defaultans = {'0', '45', '15', '0', '65535'};
-% numlines = 1;
-% %x = inputdlg('Batch,AreaHI, AreaLO, IntLo, INtHi');
-% x = inputdlg(prompt, 'User Inputs', numlines, defaultans);
-function varargout = spotprinter_backend(savepath, InputVars)
-keyboard
+function varargout = spotprinter_backend(filepath, savepath, InputVars)
+load(filepath)
 BatchMode = InputVars{1};
 ahicut = InputVars{2};
 alowcut = InputVars{3};
 ilocut = InputVars{4}; %(sd multiplier)
 ihicut = InputVars{5}; %(sd multiplier)
-saveflag = 0;
+dishnum = InputVars{6};
+save_flag = 0;
 
 if BatchMode==1
-qq = length(vec_raw_nuc);
-saveflag = 1;
+    pp = 1;
+    qq = length(vec_raw_nuc);
+    save_flag = 1;
 elseif BatchMode==0
-    qq = 1;
-else
-    qq=0;
+    pp = InputVars{8};
+    qq = pp;
 end
     
-for cc1 = 1:qq
+for cc1 = pp:qq
     
-    tspotmask = vec_spot_mask{cc1};
-    tspotimg = vec_raw_fitc{cc1};
-    [spot_lbl spot_num] = bwlabel(vec_spot_mask{cc1});
+    tspotmask = vec_spot_mask{cc1, dishnum};
+    tspotimg = vec_raw_fitc{cc1, dishnum};
+    [spot_lbl spot_num] = bwlabel(vec_spot_mask{cc1, dishnum});
     tprop = regionprops(spot_lbl, 'Area');
     
-    %spot_area_cutoff:
+    %Spot Area Vector:
     arvec = [tprop(:).Area];
     
-    %filt
+    %filt1
     filtA1 = find(arvec<alowcut);
     filtA2 = find(arvec>ahicut);
     filtA3 = [filtA1'; filtA2'];
@@ -53,6 +45,8 @@ for cc1 = 1:qq
     clear spot_lbl spot_num tprop;
     [spot_lbl spot_num] = bwlabel(tspotmask);
     tprop = regionprops(spot_lbl, tspotimg, 'MeanIntensity');
+    
+    %Spot Int Vector:
     intvec = [tprop(:).MeanIntensity];
     
     %filt2

@@ -1,4 +1,4 @@
-%Name: ReshuffleControl.m
+%Name: ReshuffleControl
 %Author: Dhruv Raina
 %resets the control directory to the '1' position for cutoff finding.
 %gui version
@@ -11,7 +11,7 @@ ridx = ridx(end);
 for aa = 1:length(treatment_dirs)                                          %reused code, getting dir names
     resultfile{aa} = treatment_dirs{aa}(ridx+1:end);
 end
-cfinder = cellfun('isempty', strfind(resultfile, 'ontrol'));               % Can be 'C' or 'c'
+cfinder = cellfun('isempty', strfind(resultfile, 'Control'));
 cidx = find(~cfinder);
 tidx = find(cfinder);
 %Resetting Control to position number 1:

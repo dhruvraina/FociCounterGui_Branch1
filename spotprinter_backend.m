@@ -1,4 +1,6 @@
 %Spot Printer: for checking cutoffs and printing sample images.
+%author: dhruv raina
+%last edit: 220814
 
 function varargout = spotprinter_backend(filepath, savepath, InputVars)
 load(filepath)
@@ -7,22 +9,22 @@ ahicut = InputVars{2};
 alowcut = InputVars{3};
 ilocut = InputVars{4}; %(sd multiplier)
 ihicut = InputVars{5}; %(sd multiplier)
+dishnum = InputVars{6};
 save_flag = 0;
 
 if BatchMode==1
-qq = length(vec_raw_nuc);
-save_flag = 1;
+    pp = 1;
+    qq = length(vec_raw_nuc);
+    save_flag = 1;
 elseif BatchMode==0
-    qq = 1;
-else
-    qq=0;
+    pp = InputVars{7};
+    qq = pp;
 end
     
-for cc1 = 1:qq
-    
-    tspotmask = vec_spot_mask{cc1};
-    tspotimg = vec_raw_fitc{cc1};
-    [spot_lbl spot_num] = bwlabel(vec_spot_mask{cc1});
+for cc1 = pp:qq
+    tspotmask = vec_spot_mask{cc1, dishnum};
+    tspotimg = vec_raw_fitc{cc1, dishnum};
+    [spot_lbl spot_num] = bwlabel(vec_spot_mask{cc1, dishnum});
     tprop = regionprops(spot_lbl, 'Area');
     
     %Spot Area Vector:

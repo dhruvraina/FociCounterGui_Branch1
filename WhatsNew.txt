@@ -1,0 +1,40 @@
+FociCounterGUI ChangeLog:
+--------------------------------------------
+Ver. 0.97b, Branch1
+
+Changes in this version:
+
+- Added a new thresholding method "Gradient" (which works well for BRCA1)
+
+- Added avg num of foci per cell. Outputs in Excel File only.
+
+- Rad51 settings: 4-45 Area, SD Multiplier of Zero, and % cells > 20 foci seems appropriate.
+You can 'load' these Rad51 settings using the 'Load Settings' button.
+
+- Minor changes throughout, code cleanup, minor changes to graphs. 
+
+
+
+Previous Changes:
+
+- Added a Nuclear Heterogeniety calculation adapted from: Young and Mayhall (1986). Outputs in Excel File only.
+
+- Changed the 'Channel Selection' panel to a dropdown menu
+
+- Fixed the problem with cutoffs during multichannel runs.
+
+- Added 'What's New' dialog to startups
+
+- Added 'Save Settings' and 'Load Settings' dialog boxes
+
+- Changes to 'Standardization Mode' - you can now choose individual fields and dishes while running single images instead of being forced to only look at the first image
+
+
+COMING SOON!
+- foci definition settings for individual channels!
+
+
+*--*--*--*--*--*--*--*--**--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*
+                     Clicking 'OK' will start the GUI
+ 
+*--*--*--*--*--*--*--*--**--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*

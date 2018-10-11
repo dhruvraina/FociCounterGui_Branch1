@@ -6,55 +6,92 @@
 % clearvars -except resfin_Area resfin_MeanInt resfin_Peri dateID
 % resultfile
 
-function varargout = datExtract5(selcrit_inputs, graph_flags, savepath, int_cutoffL, dateID, resultfile, resfin_Area, resfin_MeanInt, resfin_OtherParams)
+function varargout = datExtract5(selcrit_inputs, graph_flags, savepath, int_cutvec, dateID, resultfile, resfin_Area, resfin_MeanInt, resfin_Hetero, resfin_OtherParams)
 %% Standalone Running:
-%dateID = {'tester'};
-%resultfile = {'testerf'};
-%int_cutoffL = 0.1407; %arbit number
-%graph_flags = ones(4);
-%selcrit_inputs(1) = 7;
-%selcrit_inputs(2) = 60;
-%selcrit_inputs(3) = 10;
-%savepath = 'C:/Users/ncbs/Desktop'
+% dateID = {'tester'};
+% resultfile = {'testerf'};
+% int_cutoffL = 0.1407; %arbit number
+% graph_flags = ones(4);
+% selcrit_inputs(1) = 7;
+% selcrit_inputs(2) = 60;
+% selcrit_inputs(3) = 10;
+% selcrit_inputs(5) = 1;
+% savepath = 'C:/Users/ncbs/Desktop'
+%int_cutvec(1) = 0.14;
+%int_cutvec(2) = 0.04;
 
 %% Constants:
 savepath = [savepath '/datExtract_images/'];
 if ~exist(savepath,'dir')
     mkdir(savepath);
 end
-savescat = graph_flags(1); %save flags
+savescat = graph_flags(1);                                                 %save flags
 savebar = graph_flags(2);
-convfac = 65535;
+bitdepth = selcrit_inputs(7);
+convfac = (2^bitdepth)-1;                                                  %bitdepth of image
 aselcritH = selcrit_inputs(1);
 aselcritL = selcrit_inputs(2);
-iselcritH = 1; %Max Intensity, i.e. no cutoff
-iselcritL = int_cutoffL; %Comes from matched controls
-nspot = selcrit_inputs(3); %cells with greater than nspot are recorded for final dat set
-dishset = {'d1' 'd2'};
+iselcritH = 1;                                                             %Max Intensity, i.e. no cutoff
+switch selcrit_inputs(5)                                                   %Choose Cutoff Determination Mode
+    case 1 %Mean+1SD
+    iselcritL = int_cutvec(1)+int_cutvec(2);           
+    case 2 %Mean+2SD
+    iselcritL = int_cutvec(1)+(2*int_cutvec(2)); 
+    case 3 %Mean+n*SD
+    cutfactor = selcrit_inputs(6);
+    iselcritL = int_cutvec(1)+(cutfactor*int_cutvec(2));                   
+    case 4 %Entered Value
+    iselcritL = selcrit_inputs(6)/convfac;
+    otherwise
+    errordlg('Unexpected Error in datExtract5 @ iselcritL - undefined inputs!')
+end
+
+if iselcritL>convfac
+    iselcritL = convfac;                                                   
+end
+nspot = selcrit_inputs(3);                                                 %cells with greater than nspot are recorded for final data set
+dishset = {'d1' 'd2'};                                                     %naming for dish1 and dish2 outputs
 
 %% Parsing,Reformatting:
-if nargin<7
+if nargin<8
     resfin_OtherParams=[];
 else
 end
-for cc=1:size(resfin_MeanInt,2)
+for cc=1:size(resfin_MeanInt,2) %this will always evaluate to 2!!
     atotvec = [];
     itotvec = [];
+    hetotvec = [];
     
-    for aa = 1:size(resfin_MeanInt, 1)
+    for aa = 1:size(resfin_MeanInt, 1) %Both dishes will always be equal length, extras will be filled with blanks.
         atotvec = [atotvec; resfin_Area{aa,cc}];
         itotvec = [itotvec; resfin_MeanInt{aa,cc}];
+        hetotvec = [hetotvec; resfin_Hetero{aa,cc}];
     end
     nucnum = size(atotvec,cc);
     atotvec = atotvec';
     itotvec = itotvec';
-    
-    %Whole Nuc intensity:
+
+    %% Integrated Foci Intensity:
+    focint = itotvec;
+    focint(1,:)=0;
+    focint2 = mean(sum(focint));
+
+    %% Whole Nuc intensity:
     whInt = itotvec(1,:);
     whInt = whInt';
-    whstruct(cc).whInt = whInt.*convfac; %Storing per-dish whole nuc int + mean
+    whstruct(cc).whInt = whInt.*convfac;                                   %Storing per-dish whole nuc int + mean
     whstruct(cc).whMean = mean(whstruct(cc).whInt);
     %whstruct.whStd = std(whstruct(:).whInt);
+
+    %% Nuclear Heterogeniety
+    whstruct(cc).hetMean = mean(hetotvec(:,2));                            %From hetero.m
+    %clump mean
+    w_pixels = hetotvec(:,2).*hetotvec(:,4);
+    b_pixels = hetotvec(:,1).*hetotvec(:,4);
+    clumpvec1 = abs(w_pixels-b_pixels);
+    clumpvec2 = w_pixels+b_pixels;
+    clumpvec3 = clumpvec1./clumpvec2;
+    whstruct(cc).clumpMean = mean(clumpvec3);
     
     %% Filters:
     ttt = find(atotvec>aselcritH); %Area Filter
@@ -76,6 +113,10 @@ for cc=1:size(resfin_MeanInt,2)
     meanconv = floor(mean(intconv));
     stdconv = floor(std(intconv));
     numconv = size(atotvec,2);
+    
+    %% Avg Number of Foci per Cell:
+    numfoci = floor(length(find(itotvec))/length(itotvec));
+    whstruct(cc).avgFocNum = numfoci;
     
     %% Plotting Scatter: (ar vs. int)
     if savescat==1
@@ -113,7 +154,7 @@ for cc=1:size(resfin_MeanInt,2)
         ylabel('Percentage of Cells')
         title([resultfile dishset{cc}])
         %legend(['n= ' num2str(numconv)])
-        legend(['Int Cutoff= ' num2str(int_cutoffL*convfac) ' n= ' num2str(numconv)])
+        legend(['Int Cutoff= ' num2str(iselcritL*convfac) ' n= ' num2str(numconv)])
         set(gca, 'XLim', [0 30], 'YLim', [0 35])
         set(gcf, 'visible', 'off')
         %set(gca, 'XLim', [0 45], 'YLim', [0 40])
@@ -128,9 +169,12 @@ for cc=1:size(resfin_MeanInt,2)
     
     %storing per-dish values:
     cellnum3(cc)= cellnum2;
-    clear cellnum2 cellnum ttt ttt2 ttt3 ggg ggg2 ggg3 intconv arconv spot_histp whInt spot_ctr spot_hist
+    focint3(cc) = focint2;
+
+    clear cellnum2 cellnum ttt ttt2 ttt3 ggg ggg2 ggg3 intconv arconv spot_histp whInt spot_ctr spot_hist focint focint2
 end
 
 varargout{1} = cellnum3;
 varargout{2} = whstruct;
+varargout{3} = focint3;
 end
